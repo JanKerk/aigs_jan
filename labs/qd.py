@@ -13,26 +13,38 @@ import matplotlib.pyplot as plt
 def griewank_function(x):  # this is kind of our fitness function (except we a minimizing)
     return 1 + np.sum(x**2) / 4000 - np.prod(np.cos(x / np.sqrt(np.arange(1, x.size + 1))))
 
+@partial(np.vectorize, signature="(d)->()")
+def sphere_function(x):
+    return np.sum(x**2)
 
-@partial(np.vectorize, signature="(d)->(d)", excluded=[0])
-def mutate(sigma, x):  # What are we doing here?
+
+@partial(np.vectorize, signature="(d)->(d)", excluded=[0]) # sigma is not getting vectorized
+def mutate(sigma, x):  # Adding random noise drawn from a normal distribution --> random variation
     return x + np.random.normal(0, sigma, x.shape)
 
 
 @partial(np.vectorize, signature="(d),(d)->(d)")
-def crossover(x1, x2):  # TODO: think about what we are doing here. Is it smart?
-    return x1 * np.random.rand() + x2 * (1 - np.random.rand())
+def crossover(x1, x2):  # New vector (child) lies somewhere between x1 and x2 (parents)
+    return x1 * np.random.rand() + x2 * (1 - np.random.rand()) # parents get combined as a weighted average
 
-
+"""
 def step(x, cfg):
     fitness = griewank_function(x)
     idxs = np.argsort(fitness)[: int(cfg.population * cfg.proportion)]  # select best
     seed = np.tile(x[idxs], (int(cfg.population * cfg.proportion), 1))  # cross over
     x = crossover(seed, seed[np.random.permutation(seed.shape[0])])  # mutate
     return mutate(cfg.sigma, x), fitness  # return new generation and fitness
+"""
 
+def step(x, cfg):
+    loss = sphere_function(x)
+    idxs = np.argsort(loss)[: int(cfg.population * cfg.proportion)] # select best
+    best = np.tile(x[idxs], (int(cfg.population * cfg.proportion), 1)) # copy best to get 100% population with best again
+    x = crossover(best, best[np.random.permutation(best.shape[0])])  # crossover: every entry in best with another entry from best, but second input is shuffled before
+    return mutate(cfg.sigma, x), loss  # return new generation and loss
 
 # %% Setup
+
 def main(cfg):
     x = np.random.rand(cfg.population, cfg.dimensions)
     fitnesses = []
@@ -46,6 +58,16 @@ def main(cfg):
     plt.xlabel("Generation")
     plt.ylabel("Best Fitness")
     plt.show()
+    
+    # Boxplot to see fitness distribution
+    plt.boxplot(fitnesses, showfliers=False)
+    plt.yscale("log")
+    plt.xlabel("Generation")
+    plt.ylabel("Fitness Distribution")
+    plt.show()
+    
+    # Plot function
+    plot(sphere_function)
 
 
 # %% Plotting function that I think we should put in utils.py
@@ -59,10 +81,10 @@ def plot(fn):
     plt.show()
 
 
-# env, pop = init(ctx.config)
-# from pcgym.envs import PcgrlEnv
-# from typing import Tuple
-# from pcgym.envs.helper import get_string_map
+env, pop = init(ctx.config)
+from pcgym.envs import PcgrlEnv
+from typing import Tuple
+from pcgym.envs.helper import get_string_map
 
 # import qdax
 # from qdax.core.map_elites import MAPElites

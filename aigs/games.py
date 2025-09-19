@@ -7,17 +7,6 @@ from aigs.types import State, Env
 import numpy as np
 
 
-def connect_four_test(v):
-    if len(v) < 4:
-        return False
-
-    for i in range(len(v) - 3):
-        if v[i] and v[i + 1] and v[i + 2] and v[i + 3]:
-            return True
-    else:
-        return False
-
-
 # connect four
 class ConnectFour(Env):
     def init(self) -> State:
@@ -27,29 +16,47 @@ class ConnectFour(Env):
         return state
 
     def step(self, state, action) -> State:
-        # place piece
+        # hint: use x.diagonal(i)
+        
+        # make your move
         board = state.board.copy()
-        col = board[:, action]  # <- a vector
-        assert col[0] == 0
-        row = np.where(col == 0)[0][-1]
-        board[row, action] = 1 if state.maxim else -1
 
-        # detect winner
+        for i, val in enumerate(board[::-1, action]):
+            if val == 0:
+                row_index = 6 - 1 - i
+                board[row_index, action] = 1 if state.maxim else -1
+                break
+            elif i == 5: # if the column is already full
+                raise AssertionError(f"Invalid move: {action}")
+        
+        # function for checking vector
+        def check_vector(v):
+            if len(v) < 4:
+                return False
+            for i in range(len(v)-3):
+                if v[i] and v[i+1] and v[i+2] and v[i+3]:
+                    return True
+            return False
+        
+        # was it a winning move?
         mask = board == (1 if state.maxim else -1)
-        rows = [row for row in mask]
-        cols = [col for col in mask.T]
-        r_diags = [mask.diagonal(i) for i in range(-6, 7)]
-        l_diags = [mask.T.diagonal(i) for i in range(-7, 6)]
-        lst = [connect_four_test(v) for v in rows + cols + r_diags + l_diags]
-
-        winner = True in lst
+        
+        rows = [rows for rows in mask]
+        cols = [cols for cols in mask.T]
+        diagonals = [mask.diagonal(i) for i in range(-5, 7)]
+        flipped_diag = [np.fliplr(mask).diagonal(i) for i in range(-5, 7)]
+        
+        checks = [check_vector(v) for v in rows + cols + diagonals + flipped_diag]
+        
+        winner = True in checks
         legal = board[0] == 0
-        point = (1 if state.maxim else -1) if winner else 0
-
+        point = (1 if state.maxim else -1) if winner else 0  
+        
+        # return the next state
         return State(
             board=board,
-            legal=legal,
-            ended=not legal.any() or winner,
+            legal = legal,  # empty board positions
+            ended= (not legal.any()) or winner,
             point=point,
             maxim=not state.maxim,
         )

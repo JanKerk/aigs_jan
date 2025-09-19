@@ -18,6 +18,7 @@ mcts:
   compute: 10
   c: 0.9
   blahbalh: "sss"
+  max_iterations: 10000
 
 ann:
   hidden: 30
