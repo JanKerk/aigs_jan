@@ -10,10 +10,7 @@ from typing import Tuple
 import pcgym
 from pcgym import PcgrlEnv
 from PIL import Image
-from pcgym.envs.helper import get_int_prob, get_string_map
-from collections import OrderedDict
 from tqdm import tqdm
-from pcgym.envs.probs.smb.engine import AStarAgent, State
 
 
 # %% n-dimensional function with a strange topology
